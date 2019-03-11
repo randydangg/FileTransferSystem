@@ -16,12 +16,15 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
 /**
  *
  * @author YiLing
  */
 public class Sender extends javax.swing.JFrame {
-	public static final int TIMEOUT = 1000;
+	public static final int TIMEOUT = 250;
 	private static int ackCount = 0;
 	private DatagramSocket socket = null;
 	private DatagramSocket socket2 = null;
@@ -85,18 +88,76 @@ public class Sender extends javax.swing.JFrame {
 		mdsLabel.setText("Max Datagram Size:");
 		timeoutLabel.setText("Timeout: ");
 
-		ipInput.setText("192.168.232.1");
 		destPortInput.setText("1080");
 		srcPortInput.setText("1072");
-		mdsInput.setText("127");
+//		mdsInput.setText("127");
 		fileInput.setText("test.txt");
+		transferButton.setEnabled(false);
 		// ipInput.addActionListener(new java.awt.event.ActionListener() {
 		// @Override
 		// public void actionPerformed(java.awt.event.ActionEvent evt) {
 		// ipInputActionPerformed(evt);
 		// }
 		// });
-
+		ipInput.getDocument().addDocumentListener(new DocumentListener() {
+        	public void changedUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void removeUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void insertUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        });
+		
+		destPortInput.getDocument().addDocumentListener(new DocumentListener() {
+        	public void changedUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void removeUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void insertUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        });
+		
+		srcPortInput.getDocument().addDocumentListener(new DocumentListener() {
+        	public void changedUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void removeUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void insertUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        });
+		
+		mdsInput.getDocument().addDocumentListener(new DocumentListener() {
+        	public void changedUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void removeUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void insertUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        });
+		
+		fileInput.getDocument().addDocumentListener(new DocumentListener() {
+        	public void changedUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void removeUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        	public void insertUpdate(DocumentEvent e) {
+        		changed();
+        	}
+        });
 		transferButton.setText("TRANSFER");
 		transferButton.addActionListener(new java.awt.event.ActionListener() {
 			@Override
@@ -234,18 +295,33 @@ public class Sender extends javax.swing.JFrame {
 	// // TODO add your handling code here:
 	// }
 
+	public void changed() {
+		if (mdsInput.getText().contentEquals("") || fileInput.getText().equals("") || srcPortInput.getText().equals("") || destPortInput.getText().equals("") || ipInput.getText().equals("")){
+			transferButton.setEnabled(false);
+		}
+		else {
+			transferButton.setEnabled(true);
+			
+		}
+	}
+	
 	private void transferButtonActionPerformed(java.awt.event.ActionEvent evt)
 			throws SocketException, UnknownHostException {
 		ipAddress = ipInput.getText();
 		filename = fileInput.getText();
+		
+		startTime = 0;
+		elapsedTime = 0;
+		ackCount = 0;
+		numPackets = 0;
 
 		try {
 			desPort = Integer.parseInt(destPortInput.getText());
 			srcPort = Integer.parseInt(srcPortInput.getText());
 			mds = Integer.parseInt(mdsInput.getText()); // size of datagram
 			if (mds > 128) {
-				System.out.println("Size too large. mds = 128");
-				mds = 128;
+				System.out.println("Size too large. mds = 127");
+				mds = 127;
 			} else if (mds < 1) {
 				System.out.println("Size too small. mds = 1");
 				mds = 1;
@@ -331,6 +407,8 @@ public class Sender extends javax.swing.JFrame {
 	private void readFile() {
 		// FIND OUT WHAT ACK[] IS
 		// AND WHAT BUF IS
+	
+		
 		path = Paths.get(filename);
 //		System.out.println("Preparing to send file");
 		try {
@@ -398,7 +476,7 @@ public class Sender extends javax.swing.JFrame {
 
 		// end of transmission, ack = 2
 		endOfTransmission();
-		// transferButton.setEnabled(true);
+		transferButton.setEnabled(true);
 
 	}
 
@@ -430,7 +508,7 @@ public class Sender extends javax.swing.JFrame {
 		}
 		endTime = System.currentTimeMillis();
 		elapsedTime = endTime - startTime;
-//		transTimeText.setText(transTimeText.getText() + ' ' + String.format("%.4f s", elapsedTime / 1000));
+		transTimeText.setText("Total Transmission TIme: " + elapsedTime + " ms");
 		// System.out.println("Sent:" + ack[0]);
 		// System.out.println("packet total:" + packetTotal);
 		socket.close();

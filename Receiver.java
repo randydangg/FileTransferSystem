@@ -16,6 +16,7 @@ public class Receiver extends javax.swing.JFrame{
 	private String save_file;
 	private DatagramSocket datagramSocket;
 	private DatagramSocket datagramSocket2;
+	private File file;
 //	private long start_time, finish_time;
 	private int BUFFER_SIZE = 128;	//max size of each packet, 128 will be the default size, in order to successfully receive first packet
 	
@@ -64,8 +65,6 @@ public class Receiver extends javax.swing.JFrame{
         restrictLabel.setText("<html> Please be sure that all <br/> "
         		+ "fields above are filled </html>");
         		
-        fileInput.setText("output.txt");
-        ipInput.setText("192.168.232.1");
         destPortInput.setText("1072");
         srcPortInput.setText("1080");
         fileInput.getDocument().addDocumentListener(new DocumentListener() {
@@ -267,7 +266,12 @@ public class Receiver extends javax.swing.JFrame{
 			sender_port = Integer.parseInt(srcPortInput.getText());
 			receiver_port = Integer.parseInt(destPortInput.getText());
 			save_file = fileInput.getText();
-				
+			
+			file = new File(save_file);
+			file.createNewFile();
+			Writer writer = new FileWriter(file, false);
+			writer.write("");
+			
 			datagramSocket = new DatagramSocket();	//create datagram socket
 			datagramSocket2 = new DatagramSocket(receiver_port);
 			if (connection_type == 0){	//unreliable transfer
@@ -283,6 +287,9 @@ public class Receiver extends javax.swing.JFrame{
 		catch (UnknownHostException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			System.out.println("File Error");
 		}
 	}
 	
@@ -338,7 +345,7 @@ public class Receiver extends javax.swing.JFrame{
 				System.out.println("received packet seq# " + data_receive[0]);
 				
 				if (data_receive[0] == ack) {	//make sure that the ack number and seq num match
-					for (int i = 4; i < data_receive.length - 4; i++) {	//If receiver had to break down data into multiple packets
+					for (int i = 4; i < data_receive.length; i++) {	//If receiver had to break down data into multiple packets
 						//store data into save file
 						data_save[i-4] = data_receive[i];
 					}
@@ -372,6 +379,7 @@ public class Receiver extends javax.swing.JFrame{
 					}
 					
 					acknowledgement[0] = 2;		//set ACK num to EOT bit and send to sender, notifying them that transmission has ended
+					ackCount += 1;
 					send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 					try {
 						datagramSocket.send(send_packet);
@@ -445,7 +453,7 @@ public class Receiver extends javax.swing.JFrame{
 				
 				if (data_receive[0] == ack) {	//make sure that the ack number and seq num match
 					if (packet_count != 10) {
-						for (int i = 4; i < data_receive.length - 4; i++) {	//If receiver had to break down data into multiple packets
+						for (int i = 4; i < data_receive.length; i++) {	//If receiver had to break down data into multiple packets
 							//store data into save file
 							data_save[i-4] = data_receive[i];
 						}
@@ -474,12 +482,14 @@ public class Receiver extends javax.swing.JFrame{
 						EOTFile[i-4] = data_receive[i];
 					}
 					//write data to save file without padding the rest of the file
-					try (FileOutputStream writer = new FileOutputStream(save_file, true)){
+					try (FileOutputStream writer = new FileOutputStream(file, true)){
 						for (int j = 0; j < (int)data_receive[1]; j++) {
 							writer.write(EOTFile[j]);
 						}
+						writer.close();
 					}
 					acknowledgement[0] = 2;		//set ACK num to EOT bit and send to sender
+					ackCount += 1;
 					send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 					try {
 						datagramSocket.send(send_packet);
@@ -514,8 +524,9 @@ public class Receiver extends javax.swing.JFrame{
 	
 	private void writeToFile(byte[] data) {
 //		FileOutputStream writer;
-		try (FileOutputStream writer = new FileOutputStream(save_file, true)){
+		try (FileOutputStream writer = new FileOutputStream(file, true)){
 			writer.write(data);
+			writer.close();
 		}
 		catch (FileNotFoundException e) {
 			System.out.println("Error writing to save file");
