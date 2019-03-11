@@ -15,6 +15,7 @@ public class Receiver extends javax.swing.JFrame{
 	private InetAddress senderIP;
 	private String save_file;
 	private DatagramSocket datagramSocket;
+	private DatagramSocket datagramSocket2;
 	private long start_time, finish_time;
 	private int BUFFER_SIZE = 128;	//max size of each packet, 128 will be the default size, in order to successfully receive first packet
 	
@@ -56,9 +57,14 @@ public class Receiver extends javax.swing.JFrame{
         fileLabel.setText("Save File:");
 
         restrictLabel.setText("<html> Please be sure that sender <br/> "
-        		+ "has sent something before <br/>"
-        		+ "hitting reliabiltiy options. </html>");
+        		+ "has sent something and fields <br/>"
+        		+ "above are filled before hitting <br/>"
+        		+ "reliabiltiy options. </html>");
         
+        fileInput.setText("output.txt");
+        ipInput.setText("192.168.232.1");
+        destPortInput.setText("1022");
+        srcPortInput.setText("1023");
         fileInput.getDocument().addDocumentListener(new DocumentListener() {
         	public void changedUpdate(DocumentEvent e) {
         		changed();
@@ -259,7 +265,7 @@ public class Receiver extends javax.swing.JFrame{
 			receiver_port = Integer.parseInt(destPortInput.getText());
 			save_file = fileInput.getText();
 				
-			datagramSocket = new DatagramSocket(receiver_port);	//create datagram socket
+			datagramSocket = new DatagramSocket();	//create datagram socket
 			if (connection_type == 0){	//unreliable transfer
 				transferUnreliable();
 			}
@@ -268,7 +274,7 @@ public class Receiver extends javax.swing.JFrame{
 			}
 		}
 		catch (SocketException e) {
-			System.out.println("Error connecting Socket");
+			System.out.println("Error connecting Socket holy");
 		} 
 		catch (UnknownHostException e2) {
 			// TODO Auto-generated catch block
@@ -276,7 +282,7 @@ public class Receiver extends javax.swing.JFrame{
 		}
 	}
 	
-	private void transferReliable() {
+	private void transferReliable() throws SocketException {
 		//reliable transfer
 		byte[] data_receive = new byte[BUFFER_SIZE];	//size of these buffers might have to be set by the sender I believe
 		//default byte arrays of size 128
@@ -286,15 +292,19 @@ public class Receiver extends javax.swing.JFrame{
 		byte ack = 0;
 		boolean continue_sending = true;
 		DatagramPacket send_packet;
-		DatagramPacket receive_packet;
+//		DatagramPacket receive_packet;
 		
-		System.out.print("Beginning to provide handshaking");
+//		System.out.println("Beginning to provide handshaking");
 		//receive initial handshake from sender
+//		System.out.println(senderIP);
+//		System.out.println(sender_port);
+//		System.out.println(receiver_port);
 		DatagramPacket receive_init = new DatagramPacket(data_receive, data_receive.length);
 		try {
 			datagramSocket.receive(receive_init);
 			data_receive = receive_init.getData();
-			BUFFER_SIZE = data_receive[3];	//set new buffer size
+//			System.out.println("Received handshake packet");
+			BUFFER_SIZE = data_receive[2];	//set new buffer size
 			//and then initialize byte arrays accordingly 
 			data_receive = new byte[BUFFER_SIZE];
 			data_save = new byte[BUFFER_SIZE - 4];
@@ -306,21 +316,26 @@ public class Receiver extends javax.swing.JFrame{
 		
 		//send acknowledgement for initial handshake
 		//consider sending another ACK num for handshake instead of 0?
-		System.out.println("Preparing to send acknowledgement of handshake");
-		acknowledgement[0] = ack;
+//		System.out.println("Preparing to send acknowledgement of handshake");
+		acknowledgement[0] = -1;
 		DatagramPacket send_init = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 		try {
-			datagramSocket.send(send_init);
+//			System.out.println("Sent handshake ACK");
+			datagramSocket2.send(send_init);
 		}
 		catch (IOException e) {
 			System.out.println("Error sending packet");
 		}
-		ack = ackSwitch(ack);
+		ack = 0;
+		
+		datagramSocket2 = new DatagramSocket(receiver_port);
 		
 		while (continue_sending) {
-			receive_packet = new DatagramPacket(data_receive, data_receive.length);
+			DatagramPacket receive_packet = new DatagramPacket(data_receive, data_receive.length);
 			try {
-				datagramSocket.receive(receive_packet);
+//				System.out.println(data_receive.length);
+				datagramSocket2.receive(receive_packet);
+//				System.out.println("Packet Received");
 				data_receive = new byte[BUFFER_SIZE];
 				data_receive = receive_packet.getData();	//get data 
 				System.out.println("received packet seq# " + data_receive[0]);
@@ -334,7 +349,7 @@ public class Receiver extends javax.swing.JFrame{
 					acknowledgement[0] = ack;	//create ACK to send to sender
 					send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 					try {
-						datagramSocket.send(send_packet);
+						datagramSocket2.send(send_packet);
 						System.out.println("Sent ACK# " + acknowledgement);
 					}
 					catch (IOException e) {
@@ -354,13 +369,16 @@ public class Receiver extends javax.swing.JFrame{
 						for (int j = 0; j < (int)data_receive[1]; j++) {
 							writer.write(EOTFile[j]);
 						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
 					
 					acknowledgement[0] = 2;		//set ACK num to EOT bit and send to sender, notifying them that transmission has ended
 					send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 					try {
-						datagramSocket.send(send_packet);
-						System.out.println("Sent ACK# " + acknowledgement);
+						datagramSocket2.send(send_packet);
+						System.out.println("Sent ACK# " + acknowledgement[0]);
 					}
 					catch (IOException e) {
 						System.out.println("Error sending packet");
@@ -368,11 +386,12 @@ public class Receiver extends javax.swing.JFrame{
 					System.out.println("End of Transmission");
 					numPktsText.setText("Number of in-order packets received: " + ackCount);
 					datagramSocket.close();
+					datagramSocket2.close();
 				}
 			}
 			catch (IOException e) {
-				System.out.println("Error receiving datagram");
-			}
+				System.out.println("Error connecting Socket boiii");
+			} 
 		}
 	}
 	
@@ -519,13 +538,13 @@ public class Receiver extends javax.swing.JFrame{
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(ReceiverUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Receiver.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(ReceiverUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Receiver.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(ReceiverUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Receiver.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(ReceiverUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Receiver.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
