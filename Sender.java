@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  * @author YiLing
  */
 public class Sender extends javax.swing.JFrame {
-	public static final int TIMEOUT = 10000;
+	public static final int TIMEOUT = 1000;
 	private static int ackCount = 0;
 	private DatagramSocket socket = null;
 	private DatagramSocket socket2 = null;
@@ -304,7 +304,7 @@ public class Sender extends javax.swing.JFrame {
 			receiveData = ackPacket.getData();
 			if (receiveData[0] == -1) {
 				// if ack sent back is 0 then
-				System.out.println("Ack received. Ready to send file.");
+//				System.out.println("Ack received. Ready to send file.");
 				// copy the received data into the ack array
 				// System.arraycopy(receiveData, 0, ack, 0, 4);
 				readFile();

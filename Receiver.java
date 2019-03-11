@@ -11,7 +11,7 @@ import java.lang.*;
 
 public class Receiver extends javax.swing.JFrame{
 	
-	private int sender_port, receiver_port, ackCount = -1, connection_type = 1;	//default is reliable connection
+	private int sender_port, receiver_port, ackCount = 0, connection_type = 1;	//default is reliable connection
 	private InetAddress senderIP;
 	private String save_file;
 	private DatagramSocket datagramSocket;
@@ -330,7 +330,7 @@ public class Receiver extends javax.swing.JFrame{
 		while (continue_sending) {
 			DatagramPacket receive_packet = new DatagramPacket(data_receive, data_receive.length);
 			try {
-				System.out.println(data_receive.length);
+//				System.out.println(data_receive.length);
 //				System.out.println("Preparing to receive file");
 				datagramSocket2.receive(receive_packet);
 				data_receive = new byte[BUFFER_SIZE];
@@ -387,7 +387,7 @@ public class Receiver extends javax.swing.JFrame{
 				}
 			}
 			catch (IOException e) {
-				Logger.getLogger(Receiver.class.getName()).log(Level.SEVERE, null, e);
+				System.out.println("Error receiving datagram");
 			} 
 		}
 	}
@@ -403,16 +403,16 @@ public class Receiver extends javax.swing.JFrame{
 		int packet_count = 0;
 		boolean continue_sending = true;
 		DatagramPacket send_packet;
-		DatagramPacket receive_packet;
+//		DatagramPacket receive_packet;
 		
 		//receive initial handshake from user
-		System.out.print("Beginning to provide handshaking");
+//		System.out.print("Beginning to provide handshaking");
 		//receive initial handshake from sender
 		DatagramPacket receive_init = new DatagramPacket(data_receive, data_receive.length);
 		try {
-			datagramSocket.receive(receive_init);
+			datagramSocket2.receive(receive_init);
 			data_receive = receive_init.getData();
-			BUFFER_SIZE = data_receive[3];	//set new buffer size
+			BUFFER_SIZE = data_receive[2];	//set new buffer size
 			//and then initialize byte arrays accordingly 
 			data_receive = new byte[BUFFER_SIZE];
 			data_save = new byte[BUFFER_SIZE - 4];
@@ -425,7 +425,7 @@ public class Receiver extends javax.swing.JFrame{
 		//send acknowledgement for initial handshake
 		//consider sending another ACK num for handshake instead of 0?
 		System.out.println("Preparing to send acknowledgement of handshake");
-		acknowledgement[0] = ack;
+		acknowledgement[0] = -1;
 		DatagramPacket send_init = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 		try {
 			datagramSocket.send(send_init);
@@ -433,12 +433,12 @@ public class Receiver extends javax.swing.JFrame{
 		catch (IOException e) {
 			System.out.println("Error sending packet");
 		}
-		ack = ackSwitch(ack);
+		ack = 0;
 		
 		while (continue_sending) {
-			receive_packet = new DatagramPacket(data_receive, data_receive.length);
+			DatagramPacket receive_packet = new DatagramPacket(data_receive, data_receive.length);
 			try {
-				datagramSocket.receive(receive_packet);
+				datagramSocket2.receive(receive_packet);
 				data_receive = new byte[BUFFER_SIZE];
 				data_receive = receive_packet.getData();	//get data 
 				System.out.println("received packet seq# " + data_receive[0]);
@@ -454,7 +454,7 @@ public class Receiver extends javax.swing.JFrame{
 						send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 						try {
 							datagramSocket.send(send_packet);
-							System.out.println("Sent ACK# " + acknowledgement);
+							System.out.println("Sent ACK# " + acknowledgement[0]);
 						}
 						catch (IOException e) {
 							System.out.println("Error sending packet");
@@ -483,7 +483,7 @@ public class Receiver extends javax.swing.JFrame{
 					send_packet = new DatagramPacket(acknowledgement, acknowledgement.length, senderIP, sender_port);
 					try {
 						datagramSocket.send(send_packet);
-						System.out.println("Sent ACK# " + acknowledgement);
+						System.out.println("Sent ACK# " + acknowledgement[0]);
 					}
 					catch (IOException e) {
 						System.out.println("Error sending packet");
@@ -491,6 +491,7 @@ public class Receiver extends javax.swing.JFrame{
 					System.out.println("End of Transmission");
 					numPktsText.setText("Number of in-order packets received: " + ackCount);
 					datagramSocket.close();
+					datagramSocket2.close();
 				}
 				
 			}
@@ -512,12 +513,15 @@ public class Receiver extends javax.swing.JFrame{
 	}
 	
 	private void writeToFile(byte[] data) {
-		FileOutputStream writer;
-		try {
-			writer = new FileOutputStream(save_file, true);
+//		FileOutputStream writer;
+		try (FileOutputStream writer = new FileOutputStream(save_file, true)){
+			writer.write(data);
 		}
 		catch (FileNotFoundException e) {
 			System.out.println("Error writing to save file");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
