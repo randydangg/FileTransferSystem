@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  * @author YiLing
  */
 public class Sender extends javax.swing.JFrame {
-	public static final int TIMEOUT = 1000;
+	public static final int TIMEOUT = 10000;
 	private static int ackCount = 0;
 	private DatagramSocket socket = null;
 	private DatagramSocket socket2 = null;
@@ -85,6 +85,11 @@ public class Sender extends javax.swing.JFrame {
 		mdsLabel.setText("Max Datagram Size:");
 		timeoutLabel.setText("Timeout: ");
 
+		ipInput.setText("192.168.232.1");
+		destPortInput.setText("1080");
+		srcPortInput.setText("1072");
+		mdsInput.setText("127");
+		fileInput.setText("test.txt");
 		// ipInput.addActionListener(new java.awt.event.ActionListener() {
 		// @Override
 		// public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -233,12 +238,11 @@ public class Sender extends javax.swing.JFrame {
 			throws SocketException, UnknownHostException {
 		ipAddress = ipInput.getText();
 		filename = fileInput.getText();
-		ipAddress = "192.168.232.1";
 
 		try {
-//			desPort = Integer.parseInt(destPortInput.getText());
-//			srcPort = Integer.parseInt(srcPortInput.getText());
-//			mds = Integer.parseInt(mdsInput.getText()); // size of datagram
+			desPort = Integer.parseInt(destPortInput.getText());
+			srcPort = Integer.parseInt(srcPortInput.getText());
+			mds = Integer.parseInt(mdsInput.getText()); // size of datagram
 			if (mds > 128) {
 				System.out.println("Size too large. mds = 128");
 				mds = 128;
@@ -247,12 +251,8 @@ public class Sender extends javax.swing.JFrame {
 				mds = 1;
 			}
 			receiverIP = InetAddress.getByName(ipAddress);
-			desPort = 1024;
-			srcPort = 1022;
-			mds = 127;
-			filename = "test.txt";
-			socket = new DatagramSocket(desPort);
-			socket2 = new DatagramSocket();
+			socket = new DatagramSocket();
+			socket2 = new DatagramSocket(desPort);
 			handshake();
 		} catch (SocketException se) {
 			// do nothing
@@ -281,11 +281,11 @@ public class Sender extends javax.swing.JFrame {
 		sendData[0] = seq; // sequence number
 		sendData[1] = (byte) 0; // data receive size
 		sendData[2] = (byte) mds; // max datagram size
-		DatagramPacket initPacket = new DatagramPacket(sendData, sendData.length, receiverIP, desPort);
+		DatagramPacket initPacket = new DatagramPacket(sendData, sendData.length, receiverIP, srcPort);
 		// ack[0] = 1;
 		try {
 			// send up to (mds - 4) bytes of data
-			System.out.println("Sending handshake packet");
+//			System.out.println("Sending handshake packet");
 //			System.out.println(receiverIP);
 //			System.out.println(desPort);
 //			System.out.println(srcPort);
@@ -300,11 +300,11 @@ public class Sender extends javax.swing.JFrame {
 		ackPacket = new DatagramPacket(ack, ack.length);
 		
 		try {
-			socket.receive(ackPacket);
+			socket2.receive(ackPacket);
 			receiveData = ackPacket.getData();
 			if (receiveData[0] == -1) {
 				// if ack sent back is 0 then
-//				System.out.println("Ack received. Ready to send file.");
+				System.out.println("Ack received. Ready to send file.");
 				// copy the received data into the ack array
 				// System.arraycopy(receiveData, 0, ack, 0, 4);
 				readFile();
@@ -344,7 +344,7 @@ public class Sender extends javax.swing.JFrame {
 			// set this ack to 1 to indicate next packet
 			ack[0] = 0;
 			// transfer
-			socket.setSoTimeout(TIMEOUT);
+			socket2.setSoTimeout(TIMEOUT);
 			
 //			System.out.println("Preparing to send file");
 			for (int i = 0; i < numPackets; i++) {
@@ -357,13 +357,13 @@ public class Sender extends javax.swing.JFrame {
 				// moves the data forward 124 bytes
 				System.arraycopy(data, ackCount * (mds - 4), sendData, 4, (mds - 4));
 
-				sendPacket = new DatagramPacket(sendData, sendData.length, receiverIP, desPort);
+				sendPacket = new DatagramPacket(sendData, sendData.length, receiverIP, srcPort);
 				try {
 					// send the data packet
 					socket.send(sendPacket);
 					System.out.println(
 							"Sent bytes: " + ackCount * (mds - 4) + " to " + (ackCount * (mds - 4) + (mds - 4)));
-					socket.receive(ackPacket);
+					socket2.receive(ackPacket);
 					// System.out.println("Sent:" + ack[0]);
 
 					// if ack is expected ack, then switch
@@ -424,7 +424,7 @@ public class Sender extends javax.swing.JFrame {
 		try {
 			socket.send(sendPacket);
 //			System.out.println("packet sent");
-			socket.receive(ackPacket);
+			socket2.receive(ackPacket);
 		} catch (IOException ex) {
 			Logger.getLogger(Sender.class.getName()).log(Level.SEVERE, null, ex);
 		}
@@ -433,6 +433,8 @@ public class Sender extends javax.swing.JFrame {
 //		transTimeText.setText(transTimeText.getText() + ' ' + String.format("%.4f s", elapsedTime / 1000));
 		// System.out.println("Sent:" + ack[0]);
 		// System.out.println("packet total:" + packetTotal);
+		socket.close();
+		socket2.close();
 	}
 
 	/**
