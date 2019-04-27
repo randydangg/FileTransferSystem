@@ -3,8 +3,8 @@ A file transfer system programmed in Java that utilizes UDP Client and Server Co
 
 The program is split into two parts that runs on different end systems, Sender and Receiver, both of which are two different java programs of the same name. The purpose of this is to show the delivery of a file from the Sender to the Receiver. Both Sender and Receiver are applications presented as a GUI (Graphical User Interface). 
 
-<img src="sender.png" alt="Sender GUI" height="40%" width="40%">
-<img src="receiver.png" alt="Receiver GUI" height="40%" width="40%">
+<img src="sender.png" alt="Sender GUI" height="45%" width="45%">
+<img src="receiver.png" alt="Receiver GUI" height="45%" width="45%">
 
 The Sender GUI consists of the following fields (In order from top to bottom):
 
@@ -39,13 +39,13 @@ The process of delivery can be seen below, with the input file being a simple te
 
 For "Reliable" delivery:
 
-<img src="sender2.png" alt="Sender Reliable" height="40%" width="40%">
-<img src="receiverRel.png" alt="Receiver Reliable" height="40%" width="40%">
+<img src="sender2.png" alt="Sender Reliable" height="45%" width="45%">
+<img src="receiverRel.png" alt="Receiver Reliable" height="45%" width="45%">
 
 For "Unreliable" delivery:
 
-<img src="sender1.png" alt="Sender Reliable" height="40%" width="40%">
-<img src="receiverUn.png" alt="Receiver Reliable" height="40%" width="40%">
+<img src="sender1.png" alt="Sender Reliable" height="45%" width="45%">
+<img src="receiverUn.png" alt="Receiver Reliable" height="45%" width="45%">
 
 Notice how the total transmission time of the same file is different in both modes. The total transmission time is greater in the "Unreliable" mode due to the packet loss simulation done by the Receiver. 
 
